@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forensic Mystery: Case #104</title>
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 { color: #58a6ff; text-shadow: 0 0 10px rgba(88,166,255,0.4); }
+        .game-container {
+            max-width: 700px;
+            margin: 20px auto;
+            background: #161b22;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .timer { font-size: 20px; color: #f85149; margin-bottom: 15px; font-weight: bold; }
+        .viewport {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            padding: 20px;
+            min-height: 180px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .interactive-object {
+            background: #21262d;
+            border: 1px solid #58a6ff;
+            color: #58a6ff;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: 0.2s;
+            display: inline-block;
+            margin: 5px;
+        }
+        .interactive-object:hover { background: #58a6ff; color: #0d1117; }
+        .nav-btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+        }
+        .nav-btn:hover { background: #2ea043; }
+        .inventory-box {
+            background: #21262d;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            text-align: left;
+            border-left: 4px solid #d29922;
+        }
+        /* Modal Popup Styling */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #161b22;
+            padding: 25px;
+            border: 2px solid #58a6ff;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 80%;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: white;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🔍 FORENSIC MYSTERY: CASE #104</h1>
+    <div class="game-container">
+        <div class="timer" id="timerDisplay">⏱️ 10:00</div>
+        
+        <div class="viewport" id="viewport">
+            <!-- Dynamic Room Content -->
+        </div>
+
+        <div>
+            <button class="nav-btn" id="prevRoomBtn" onclick="changeRoom(-1)" style="display:none;">◀ Prev Room</button>
+            <button class="nav-btn" id="nextRoomBtn" onclick="changeRoom(1)">Next Room ▶</button>
+        </div>
+
+        <div class="inventory-box">
+            <strong>🎒 Forensic Evidence Bag:</strong> <span id="itemsList">None</span>
+        </div>
+    </div>
+
+    <!-- Puzzle Modal -->
+    <div class="modal" id="puzzleModal">
+        <div class="modal-content">
+            <h3 id="puzzleTitle" style="color: #f0883e;">SECURITY CHECK</h3>
+            <p id="puzzleDesc" style="font-size: 14px;"></p>
+            <input type="text" id="puzzleInput" placeholder="Enter Code"><br>
+            <button class="nav-btn" onclick="submitPuzzle()">Submit Code</button>
+            <button class="nav-btn" style="background: #da3633;" onclick="closePuzzle()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let currentRoomIndex = 1;
+        let inventory = [];
+        let roomUnlocked = { 1: true, 2: false, 3: false };
+        let secondsLeft = 600;
+        let timerInterval = setInterval(updateTimer, 1000);
+
+        function updateTimer() {
+            let mins = Math.floor(secondsLeft / 60);
+            let secs = secondsLeft % 60;
+            document.getElementById('timerDisplay').innerText = `⏱️ ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            if (secondsLeft > 0) {
+                secondsLeft--;
+            } else {
+                clearInterval(timerInterval);
+                alert("⏰ Time Up! Case Failed.");
+                location.reload();
+            }
+        }
+
+        const rooms = {
+            1: {
+                title: "ROOM 1: THE CRIME SCENE STUDY",
+                desc: "Victim found dead at the desk. The door is locked from inside.",
+                objects: [
+                    { id: 'uv', name: '🔦 UV Flashlight', action: 'collect', desc: 'Found hidden blood spatter.' },
+                    { id: 'diary', name: '📖 Victim’s Diary', action: 'collect', desc: 'Note reads: centrifuge settings at 4092.' },
+                    { id: 'door1', name: '🚪 Oak Door (Keypad)', action: 'puzzle1', desc: 'Requires 4-digit code.' }
+                ]
+            },
+            2: {
+                title: "ROOM 2: TOXICOLOGY & LAB",
+                desc: "Chemical benches and analysis stations.",
+                objects: [
+                    { id: 'reagent', name: '🧪 Chemical Vial', action: 'collect', desc: 'Poisonous residue detected.' },
+                    { id: 'terminal', name: '💻 Lab Terminal', action: 'puzzle2', desc: 'Enter secure database PIN (8812).' }
+                ]
+            },
+            3: {
+                title: "ROOM 3: EVIDENCE VAULT",
+                desc: "Final security clearance gate.",
+                objects: [
+                    { id: 'badge', name: '🪪 Master Card', action: 'collect', desc: 'Access card secured.' },
+                    { id: 'finalGate', name: '🔒 Main Exit Vault', action: 'win', desc: 'Requires all evidence.' }
+                ]
+            }
+        };
+
+        function renderRoom() {
+            const room = rooms[currentRoomIndex];
+            let html = `<h2>${room.title}</h2><p>${room.desc}</p><div style="margin-top:15px;">`;
+            room.objects.forEach(obj => {
+                html += `<div class="interactive-object" onclick="handleObject('${obj.id}', '${obj.action}', '${obj.name}')">${obj.name}</div>`;
+            });
+            html += `</div>`;
+            document.getElementById('viewport').innerHTML = html;
+            document.getElementById('prevRoomBtn').style.display = currentRoomIndex > 1 ? 'inline-block' : 'none';
+        }
+
+        function handleObject(id, action, name) {
+            if (action === 'collect') {
+                if (!inventory.includes(name)) {
+                    inventory.push(name);
+                    document.getElementById('itemsList').innerText = inventory.join(', ');
+                    alert(`🔍 Secured: ${name}`);
+                } else {
+                    alert("Already collected!");
+                }
+            } else if (action === 'puzzle1') {
+                openPuzzleModal("CRIME SCENE PIN", "Clue: Check diary for centrifuge settings (4092).", "4092", 2);
+            } else if (action === 'puzzle2') {
+                openPuzzleModal("LAB TERMINAL", "Clue: Enter security password (8812).", "8812", 3);
+            } else if (action === 'win') {
+                if (inventory.length >= 5) {
+                    clearInterval(timerInterval);
+                    alert("🏆 CASE CLOSED SUCCESSFULLY! Brilliant investigation, Vaishali!");
+                    document.getElementById('viewport').innerHTML = `<h2>🎉 CASE SOLVED #104</h2><p>Killer convicted successfully!</p>`;
+                } else {
+                    alert("❌ Incomplete Investigation! Collect all 5 items first.");
+                }
+            }
+        }
+
+        let targetAnswer = "";
+        let nextTargetRoom = 2;
+
+        function openPuzzleModal(title, desc, answer, targetRoom) {
+            document.getElementById('puzzleTitle').innerText = title;
+            document.getElementById('puzzleDesc').innerText = desc;
+            document.getElementById('puzzleInput').value = "";
+            targetAnswer = answer;
+            nextTargetRoom = targetRoom;
+            document.getElementById('puzzleModal').style.display = 'flex';
+        }
+
+        function closePuzzle() {
+            document.getElementById('puzzleModal').style.display = 'none';
+        }
+
+        function submitPuzzle() {
+            const val = document.getElementById('puzzleInput').value;
+            if (val === targetAnswer) {
+                roomUnlocked[nextTargetRoom] = true;
+                closePuzzle();
+                alert("🔓 Access Granted!");
+                currentRoomIndex = nextTargetRoom;
+                renderRoom();
+            } else {
+                alert("❌ Incorrect Code!");
+            }
+        }
+
+        function changeRoom(direction) {
+            let next = currentRoomIndex + direction;
+            if (next >= 1 && next <= 3) {
+                if (roomUnlocked[next]) {
+                    currentRoomIndex = next;
+                    renderRoom();
+                } else {
+                    alert("🔒 Room locked! Solve the puzzle first.");
+                }
+            }
+        }
+
+        renderRoom();
+    </script>
+</body>
+</html>
